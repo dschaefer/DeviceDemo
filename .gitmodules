@@ -1,0 +1,3 @@
+[submodule "NeoPixel"]
+	path = NeoPixel
+	url = git@github.com:dschaefer/NeoPixel.git
