@@ -1,3 +1,6 @@
 [submodule "NeoPixel"]
 	path = NeoPixel
 	url = git@github.com:dschaefer/NeoPixel.git
+[submodule "paho.mqtt.embedded-c"]
+	path = paho.mqtt.embedded-c
+	url = git@github.com:dschaefer/paho.mqtt.embedded-c.git
