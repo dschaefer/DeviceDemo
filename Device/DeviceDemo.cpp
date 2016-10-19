@@ -7,7 +7,7 @@
 #include <MQTTClient/src/MQTTClient.h>
 #include "DeviceDemo.h"
 
-#define MQTT_SERVER "192.168.0.40"
+#define MQTT_SERVER "192.168.0.100"
 
 NeoPixel pixels(4, PIXEL_PIN);
 IPStack ipstack;
@@ -22,6 +22,29 @@ static void set_color(uint8_t r, uint8_t g, uint8_t b) {
 		pixels.setPixel(i, r, g, b);
 	}
 	pixels.show();
+}
+
+int state = -1;
+
+static void send_color() {
+	const char *color;
+	switch (state) {
+	case 0:
+		color = "green";
+		break;
+	case 1:
+		color = "yellow";
+		break;
+	case 2:
+		color = "red";
+		break;
+	default:
+		color = "unknown";
+	}
+	printf("%s\n", color);
+	while (mqttClient.publish("/dist", (char *) color, strlen(color))) {
+		delay(100);
+	}
 }
 
 bool started = false;
@@ -40,7 +63,25 @@ static bool range_finder_isr(GPIO * pin) {
 	}
 }
 
-static void *sonar_task(void * arg) {
+bool in_flash_mode = false;
+
+static void flash_mode() {
+	while (in_flash_mode) {
+		set_color(0, 0, 150);
+		while (mqttClient.publish("/dist", (void *) "blue", 4)) {
+			delay(100);
+		}
+		delay(200);
+		set_color(0, 0, 0);
+		while (mqttClient.publish("/dist", (void *) "black", 5)) {
+			delay(100);
+		}
+		delay(200);
+	}
+	send_color();
+}
+
+static void *range_finder_task(void * arg) {
 	char message[16];
 	GPIO triggerPin(TRIGGER_PIN);
 	GPIO echoPin(ECHO_PIN);
@@ -54,9 +95,11 @@ static void *sonar_task(void * arg) {
 	echoPin.interruptMode(GPIO::PosEdge);
 	echoPin.interruptEnable(range_finder_isr);
 
-	int state = -1;
-
 	while (true) {
+		if (in_flash_mode) {
+			flash_mode();
+		}
+
 		triggerPin.digitalWrite(GPIO::High);
 		usleep(20);
 		triggerPin.digitalWrite(GPIO::Low);
@@ -80,28 +123,27 @@ static void *sonar_task(void * arg) {
 
 		if (newState != state) {
 			state = newState;
-			const char *color;
-			switch (state) {
-			case 0:
-				color = "green";
-				break;
-			case 1:
-				color = "yellow";
-				break;
-			case 2:
-				color = "red";
-				break;
-			default:
-				color = "unknown";
-			}
-			printf("%s\n", color);
-			while (mqttClient.publish("/dist", (char *) color, strlen(color))) {
-				delay(100);
-			}
+			send_color();
 		}
 		sprintf(message, "%d", dist);
 
 		delay(100);
+	}
+}
+
+void command_arrived(MQTT::MessageData& md) {
+	MQTT::Message &message = md.message;
+
+	char buff[32];
+	memcpy(buff, message.payload, message.payloadlen);
+	buff[message.payloadlen] = 0;
+	printf("Received: %s\n", buff);
+	if (!strcmp(buff, "Ping")) {
+		send_color();
+	} else if (!strcmp(buff, "Flash")) {
+		in_flash_mode = true;
+	} else if (!strcmp(buff, "Off")) {
+		in_flash_mode = false;
 	}
 }
 
@@ -112,14 +154,7 @@ void reconnect() {
 	printf("Reconnnecting...\n");
 	ipstack.ip_connect(MQTT_SERVER, 1883);
 	mqttClient.connect(connectParams);
-}
-
-void command_arrived(MQTT::MessageData& md) {
-	MQTT::Message &message = md.message;
-
-	char buff[32];
-	memcpy(buff, message.payload, message.payloadlen);
-	printf("Received: %s\n", buff);
+	mqttClient.subscribe("/command", MQTT::QOS0, command_arrived);
 }
 
 void *mqtt_task(void * arg) {
@@ -129,7 +164,7 @@ void *mqtt_task(void * arg) {
 	printf("MQTT Connected\n");
 
 	// start up the range finder
-	range_finder_start(sonar_task);
+	range_finder_start(range_finder_task);
 
 	mqttClient.subscribe("/command", MQTT::QOS0, command_arrived);
 
