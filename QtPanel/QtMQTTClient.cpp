@@ -17,8 +17,6 @@ static int messageArrived(void *context, char *topicName, int, MQTTAsync_message
 	QString msg = QString::fromUtf8(data);
     emit ((QtMQTTClient *) context)->message(topicName, msg);
 
-    printf("Recieved '%s'\n", data.data());
-
     MQTTAsync_freeMessage(&message);
     MQTTAsync_free(topicName);
     return 1;
@@ -38,7 +36,6 @@ QtMQTTClient::QtMQTTClient(QString address, QString id, QObject *parent) : QObje
 
 static void onConnect(void *context, MQTTAsync_successData *) {
 	qDebug("Connected");
-	printf("Connected\n");
 	emit ((QtMQTTClient *) context)->connected();
 }
 
@@ -55,7 +52,6 @@ void QtMQTTClient::connect() {
 	connectOptions.context = this;
 
 	qDebug("Connecting...");
-	printf("Connecting...\n");
 	int rc = MQTTAsync_connect(client, &connectOptions);
 	if (rc != MQTTASYNC_SUCCESS) {
 		qFatal("Failed to start connect, return code %d\n", rc);
@@ -103,7 +99,6 @@ void QtMQTTClient::publish(QString topic, QString msg) {
 	message.qos = 0;
 	message.retained = 0;
 
-	printf("Sending '%s'\n", payload.data());
 	int rc = MQTTAsync_sendMessage(client, topic.toUtf8(), &message, &options);
 	if (rc != MQTTASYNC_SUCCESS) {
 		qFatal("Failed to start sendMessage, return code %d\n", rc);

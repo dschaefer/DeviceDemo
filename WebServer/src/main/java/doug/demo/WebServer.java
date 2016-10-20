@@ -54,12 +54,15 @@ public class WebServer implements MqttCallback {
 		server.websocketHandler(socket -> {
 			System.out.println("New WebSocket");
 			sockets.add(socket);
-			socket.writeFinalTextFrame(color);
+			try {
+				mqttClient.publish("/command", "Ping".getBytes(), 0, false);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 			socket.endHandler(v -> {
 				sockets.remove(socket);
 			});
 			socket.frameHandler(frame -> {
-				System.out.println("command: " + frame.binaryData().toString());
 				try {
 					mqttClient.publish("/command", frame.binaryData().getBytes(), 0, false);
 				} catch (Exception e) {
@@ -94,7 +97,6 @@ public class WebServer implements MqttCallback {
 	@Override
 	public void messageArrived(String topic, MqttMessage message) throws Exception {
 		color = new String(message.getPayload(), StandardCharsets.UTF_8);
-		System.out.println("Color: " + color);
 		vertx.runOnContext(v -> {
 			for (ServerWebSocket socket : sockets) {
 				socket.writeFinalTextFrame(color);

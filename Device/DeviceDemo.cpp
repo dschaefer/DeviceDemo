@@ -25,6 +25,7 @@ static void set_color(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 int state = -1;
+bool need_reconnect = false;
 
 static void send_color() {
 	const char *color;
@@ -43,7 +44,10 @@ static void send_color() {
 	}
 	printf("%s\n", color);
 	while (mqttClient.publish("/dist", (char *) color, strlen(color))) {
-		delay(100);
+		need_reconnect = true;
+		while (need_reconnect) {
+			delay(100);
+		}
 	}
 }
 
@@ -111,23 +115,31 @@ static void *range_finder_task(void * arg) {
 
 		int newState;
 		if (dist < 20) {
-			set_color(100, 0, 0);
 			newState = 2;
 		} else if (dist < 40) {
-			set_color(100, 100, 0);
 			newState = 1;
 		} else {
-			set_color(0, 100, 0);
 			newState = 0;
 		}
 
 		if (newState != state) {
 			state = newState;
+			switch (state) {
+			case 0:
+				set_color(0, 100, 0);
+				break;
+			case 1:
+				set_color(100, 100, 0);
+				break;
+			case 2:
+				set_color(100, 0, 0);
+				break;
+			}
 			send_color();
 		}
 		sprintf(message, "%d", dist);
 
-		delay(100);
+		delay(200);
 	}
 }
 
@@ -169,8 +181,10 @@ void *mqtt_task(void * arg) {
 	mqttClient.subscribe("/command", MQTT::QOS0, command_arrived);
 
 	while (true) {
-		if (mqttClient.yield()) {
+		mqttClient.yield(60 * 60 * 1000);
+		if (need_reconnect) {
 			reconnect();
+			need_reconnect = false;
 		}
 	}
 }

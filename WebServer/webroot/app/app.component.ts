@@ -3,7 +3,7 @@ import { Component, OnInit } from '@angular/core';
 @Component({
     selector: 'my-app',
     template: `
-        <h1>{{color}}</h1>
+        <h1 [ngStyle]="{ 'color': color }">{{color}}</h1>
         <button type="button" (click)="onClick()">{{command}}</button>
         `
 }) export class AppComponent implements OnInit {

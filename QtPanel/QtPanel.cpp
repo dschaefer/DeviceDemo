@@ -7,7 +7,7 @@
 #if defined(__APPLE__)
 #define MQTT_URL "tcp://localhost:1883"
 #elif defined(__QNXNTO__)
-#define MQTT_URL "tcp://192.168.0.100:1883"
+#define MQTT_URL "tcp://192.168.0.101:1883"
 #endif
 
 int main(int argc, char *argv[]) {
