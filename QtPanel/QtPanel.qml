@@ -11,8 +11,8 @@ Window {
 
 		Item {
 			id: state
-			width: 400
-			height: 200
+			width: 600
+			height: 250
 			property alias color: rectangle.color
 			
 			Rectangle {
@@ -20,13 +20,18 @@ Window {
 				anchors.fill: parent
 				border.color: "black"
 				color: "blue"
+				
+				Text {
+					id: colorText
+					anchors.centerIn: parent
+				}
 			}
 		}
 		
 		Item {
 			id: button
-			width: 400
-			height: 100
+			width: 600
+			height: 150
 			property bool on: false
 			property alias text: text.text
 
@@ -69,6 +74,7 @@ Window {
 		}
 		onMessage: {
 			state.color = msg;
+			colorText.text = msg;
 		}
 	}
 
