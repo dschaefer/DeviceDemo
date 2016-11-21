@@ -2,6 +2,8 @@ cmake_minimum_required (VERSION 2.6)
 
 project (DeviceDemo)
 
+set(CMAKE_BUILD_TYPE Release)
+
 add_subdirectory(GPIO)
 add_subdirectory(NeoPixel/src)
 add_subdirectory(paho.mqtt.embedded-c/MQTTPacket/src)
