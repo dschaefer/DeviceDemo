@@ -9,8 +9,8 @@ void setup() {
 
 void loop() {
 	for (int i = 0; i < 4; i++) {
-		pixels.setPixelColor(i, 0, 0, 0);
-		//pixels.setPixelColor(i, rand(), rand(), rand());
+		//pixels.setPixelColor(i, 0, 0, 0);
+		pixels.setPixelColor(i, rand(), rand(), rand());
 	}
 	pixels.show();
 
